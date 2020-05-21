@@ -2,24 +2,35 @@ var express = require('express');
 var router = express.Router();
 
 const bodyParser = require("body-parser");
-const fs = require('fs');
+//const fs = require('fs');
 
-const studentData = JSON.parse(fs.readFileSync('./data/studentData.json'));
+//const studentData = JSON.parse(fs.readFileSync('./data/studentData.json'));
+var studentData = []
+
+const Pool = require('pg').Pool
+const pool = new Pool({
+  user: 'me',    
+  host: 'localhost',
+  database: 'api',
+  password: 'password',
+  port: 5432,
+})
+
+pool.query('SELECT * FROM "studentData" ORDER BY "studentId" ASC', (error, results) => {
+  if (error) {
+    throw error
+  }
+  //console.log(results.rows)
+  studentData = results.rows
+  //console.log(studentData)
+  //res.send(results.rows)
+})
 
 router.use(bodyParser.urlencoded({ extended: false }));
 router.use(bodyParser.json());
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-  //res.send('respond with a resource');
-  //fs.readFile('./data/students.json', (err, json) => {
-  //  let obj = JSON.parse(json);
-  //  res.json(obj);
-  //});
-  //res.send(
-  //  'students'
-  //);
-  
   res.send("A student id is rqquired.")
 });
 
@@ -30,16 +41,18 @@ router.get('/:id', function (req, res, next) {
   //console.log(req.query)
   console.log("***")
   
-  const oneStudent = studentData.filter(student => student.studentId === Number(req.params.id))
-  
+  console.log(studentData)
+  const oneStudent = studentData.filter(student => Number(student.studentId) === Number(req.params.id))
+  //const oneStudent = studentData.filter(student => student.studentId == req.params.id)
   console.log(oneStudent)
+
   if ((oneStudent === undefined) || (oneStudent.length < 1))
   {
-  res.send("No grades found for Student.")
+    res.send("No grades found for Student.")
   }
   else
   {
-  res.send(oneStudent)
+    res.send(oneStudent)
   }
 });
 
@@ -51,17 +64,30 @@ router.post("/", function (req, res) {
       newGrade.className &&
       newGrade.grade 
     ) {
-      //reviews.push({
-      //  email: review.email,
-      //  movieId: review.movieId,
-      //  reviewTitle: review.reviewTitle,
-      //  reviewText: review.reviewText,
-      //});
+        //console.log(newGrade)
+        pool.query('INSERT INTO "studentData" ("studentId", "className", "grade") VALUES ($1, $2, $3)', [newGrade.studentId, newGrade.className, newGrade.grade], (error, results) => {
+          if (error) {
+            throw error
+          }
+        })
+
+        // Add ins here could be a select to see if the grade already exists and an update if the new grade is better than the old grade.
+        
+        pool.query('SELECT * FROM "studentData" ORDER BY "studentId" ASC', (error, results) => {
+          if (error) {
+            throw error
+          }
+          //console.log(results.rows)
+          studentData = results.rows
+          //console.log(studentData)
+          //res.send(results.rows)
+        })
   
       result = {
         status: "success",
         message: "This grade data has been successfully added",
       };
+    
     } else {
       result = {
         status: "failed",
