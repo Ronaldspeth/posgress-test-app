@@ -1,18 +1,30 @@
 var express = require('express');
 var router = express.Router();
 
+//var pgp = require('pg-promise')(/* options */)
+//var poolConnection = require('./postgres-connection');
 const bodyParser = require("body-parser");
+
+const Pool = require('pg').Pool
+const pool = new Pool({
+  user: 'me',    
+  host: 'localhost',
+  database: 'api',
+  password: 'password',
+  port: 5432,
+})
 
 router.use(bodyParser.urlencoded({ extended: false }));
 router.use(bodyParser.json());
 
 /* GET users listing. */
 router.get('/', function(req, res, next) {
-  //res.send('respond with a resource');
-  res.send([
-    {username: "Person1", fullName: "Person One"},
-    {username: "Person2", fullName: "Person Two"}
-  ]);
+    pool.query('SELECT * FROM users ORDER BY id ASC', (error, results) => {
+      if (error) {
+        throw error
+      }
+      res.send(results.rows)
+    })
 });
 
 router.post("/", function (req, res) {
